@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funifelt - Asistente de Aprendizaje de Idiomas</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #6fb98f;
+            --accent-color: #f7b733;
+            --light-color: #f9f9f9;
+            --dark-color: #2c3e50;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        
+        .language-selector {
+            display: flex;
+            justify-content: center;
+            padding: 0.5rem;
+            background-color: #e9ecef;
+        }
+        
+        .language-btn {
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 20px;
+            background-color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .language-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .bot-message {
+            background-color: #e9ecef;
+            color: var(--dark-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .language-tag {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+            opacity: 0.7;
+        }
+        
+        .message-input {
+            display: flex;
+            padding: 1rem;
+            background-color: #f1f3f5;
+        }
+        
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 0.8rem 1rem;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            margin-left: 0.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        
+        button:hover {
+            background-color: #5da67f;
+        }
+        
+        .auto-detect {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--dark-color);
+        }
+        
+        .hints {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .hint-commands {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .hint-command {
+            background-color: #e9ecef;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 600px) {
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Funifelt - Asistente de Aprendizaje de Idiomas</h1>
+    </header>
+    
+    <div class="language-selector">
+        <button class="language-btn active" data-lang="es">Español</button>
+        <button class="language-btn" data-lang="en">English</button>
+        <button class="language-btn" data-lang="fr">Français</button>
+        <button class="language-btn" data-lang="it">Italiano</button>
+    </div>
+    
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <!-- Los mensajes se añadirán aquí dinámicamente -->
+            </div>
+            
+            <div class="message-input">
+                <input type="text" id="user-input" placeholder="Escribe tu mensaje aquí...">
+                <button id="send-btn">Enviar</button>
+            </div>
+            
+            <div class="auto-detect">
+                <input type="checkbox" id="auto-detect" checked>
+                <label for="auto-detect">Detectar idioma automáticamente</label>
+            </div>
+        </div>
+        
+        <div class="hints">
+            <p>Comandos rápidos para cambiar de idioma:</p>
+            <div class="hint-commands">
+                <span class="hint-command">/español</span>
+                <span class="hint-command">/english</span>
+                <span class="hint-command">/français</span>
+                <span class="hint-command">/italiano</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const socket = io();
+            
+            const messagesContainer = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-btn');
+            const autoDetectCheckbox = document.getElementById('auto-detect');
+            const languageButtons = document.querySelectorAll('.language-btn');
+            const hintCommands = document.querySelectorAll('.hint-command');
+            
+            let currentLanguage = 'es'; // Idioma predeterminado
+            
+            // Nombres completos de los idiomas
+            const languageNames = {
+                'es': 'Español',
+                'en': 'English',
+                'fr': 'Français',
+                'it': 'Italiano'
+            };
+            
+            // Función para añadir un mensaje al chat
+            function addMessage(text, sender, language) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', `${sender}-message`);
+                
+                // Añadir etiqueta de idioma solo para mensajes del bot
+                if (sender === 'bot') {
+                    const languageTag = document.createElement('div');
+                    languageTag.classList.add('language-tag');
+                    languageTag.textContent = languageNames[language] || 'Unknown';
+                    messageElement.appendChild(languageTag);
+                }
+                
+                const textElement = document.createElement('div');
+                textElement.textContent = text;
+                messageElement.appendChild(textElement);
+                
+                messagesContainer.appendChild(messageElement);
+                
+                // Scroll al final
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // Enviar mensaje
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (message) {
+                    addMessage(message, 'user');
+                    
+                    socket.emit('user-message', {
+                        text: message, 
+                        language: currentLanguage,
+                        autoDetect: autoDetectCheckbox.checked
+                    });
+                    
+                    userInput.value = '';
+                }
+            }
+            
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            
+            userInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // Cambiar idioma al hacer clic en los botones
+            languageButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Cambiar clase activa
+                    languageButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Establecer idioma actual
+                    currentLanguage = button.getAttribute('data-lang');
+                    
+                    // Enviar comando para cambiar idioma
+                    socket.emit('user-message', {
+                        text: `/${currentLanguage}`,
+                        language: currentLanguage,
+                        autoDetect: false
+                    });
+                });
+            });
+            
+            // Insertar comandos al hacer clic
+            hintCommands.forEach(command => {
+                command.addEventListener('click', () => {
+                    userInput.value = command.textContent;
+                    sendMessage();
+                });
+            });
+            
+            // Recibir mensajes del bot
+            socket.on('bot-message', (data) => {
+                addMessage(data.text, 'bot', data.language);
+                
+                // Actualizar el botón de idioma activo si cambió
+                if (data.language && data.language !== currentLanguage) {
+                    currentLanguage = data.language;
+                    languageButtons.forEach(btn => {
+                        if (btn.getAttribute('data-lang') === currentLanguage) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
