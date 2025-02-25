@@ -168,16 +168,18 @@ El servidor expone los siguientes endpoints:
 - **Expansión de Idiomas**: Añadir soporte para más idiomas
 - **Integración con Audio**: Capacidad de pronunciación y reconocimiento de voz
 
-## Licencia
-
-[Especificar la licencia que aplica al proyecto]
 
 ## Contacto
 
 Para más información o soporte, contactar a:
-- Email: [correo de contacto de Funifelt]
-- Sitio web: [sitio web de Funifelt]
+- Telefono: +57 3053493168 (CO)
++31 6 87623593  (NL)
+- Sitio web:[ [sitio web de Funifelt]](https://www.funifelt.com)
 
 ---
 
-© 2025 Funifelt. Todos los derechos reservados.
+2024
+
+by FUNIFELT ©
+
+All rights reserved 
