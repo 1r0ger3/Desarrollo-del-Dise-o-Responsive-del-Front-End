@@ -1,0 +1,172 @@
+// Funifelt AI Language Assistant Chat
+// Plataforma de aprendizaje de idiomas con respuestas en inglés, francés, español e italiano
+
+// Configuración inicial
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const path = require('path');
+const { OpenAI } = require('openai');
+
+// Inicializar aplicación Express
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
+// Configuración de OpenAI (u otro proveedor de IA)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY // Asegúrate de tener esta variable de entorno configurada
+});
+
+// Servir archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+
+// Idiomas soportados
+const supportedLanguages = {
+  es: "español",
+  en: "inglés",
+  fr: "francés",
+  it: "italiano"
+};
+
+// Saludos en diferentes idiomas
+const greetings = {
+  es: "¡Hola! Soy el asistente de idiomas de Funifelt. ¿En qué puedo ayudarte hoy?",
+  en: "Hello! I'm the Funifelt language assistant. How can I help you today?",
+  fr: "Bonjour! Je suis l'assistant linguistique de Funifelt. Comment puis-je vous aider aujourd'hui?",
+  it: "Ciao! Sono l'assistente linguistico di Funifelt. Come posso aiutarti oggi?"
+};
+
+// Respuestas para cambios de idioma
+const languageChangedResponses = {
+  es: "Cambiado a español. ¿En qué puedo ayudarte?",
+  en: "Switched to English. How can I help you?",
+  fr: "Passé au français. Comment puis-je vous aider?",
+  it: "Passato all'italiano. Come posso aiutarti?"
+};
+
+// Configuración del contexto de la IA
+const getSystemPrompt = (language) => {
+  const prompts = {
+    es: "Eres un asistente amable e interactivo de Funifelt, una empresa dedicada al aprendizaje de idiomas. Respondes en español y ayudas a los usuarios a aprender idiomas. Eres paciente, entusiasta y proporcionas explicaciones claras. Incluye ejemplos prácticos cuando sea relevante.",
+    en: "You are a friendly and interactive assistant from Funifelt, a company dedicated to language learning. You respond in English and help users learn languages. You are patient, enthusiastic, and provide clear explanations. Include practical examples when relevant.",
+    fr: "Vous êtes un assistant amical et interactif de Funifelt, une entreprise dédiée à l'apprentissage des langues. Vous répondez en français et aidez les utilisateurs à apprendre des langues. Vous êtes patient, enthousiaste et fournissez des explications claires. Incluez des exemples pratiques lorsque c'est pertinent.",
+    it: "Sei un assistente amichevole e interattivo di Funifelt, un'azienda dedicata all'apprendimento delle lingue. Rispondi in italiano e aiuti gli utenti a imparare le lingue. Sei paziente, entusiasta e fornisci spiegazioni chiare. Includi esempi pratici quando rilevante."
+  };
+  return prompts[language] || prompts.en;
+};
+
+// Función para detectar el idioma del mensaje (simplificada)
+function detectLanguage(message) {
+  // Esta es una implementación muy básica. En producción, usaría una librería como 'franc' o servicios de detección de idiomas
+  const lowerMsg = message.toLowerCase();
+  
+  // Palabras comunes en diferentes idiomas para detección simple
+  if (/\b(hello|hi|thanks|please|yes|no|help|how|what|where|when|why|who)\b/.test(lowerMsg)) return 'en';
+  if (/\b(hola|gracias|por favor|sí|no|ayuda|cómo|qué|dónde|cuándo|por qué|quién)\b/.test(lowerMsg)) return 'es';
+  if (/\b(bonjour|merci|s'il vous plaît|oui|non|aide|comment|quoi|où|quand|pourquoi|qui)\b/.test(lowerMsg)) return 'fr';
+  if (/\b(ciao|grazie|per favore|sì|no|aiuto|come|cosa|dove|quando|perché|chi)\b/.test(lowerMsg)) return 'it';
+  
+  // Valor predeterminado
+  return 'en';
+}
+
+// Función para manejar comandos específicos
+function handleCommands(message, currentLanguage) {
+  const lowerMsg = message.toLowerCase();
+  
+  // Comandos para cambiar idioma
+  if (/^\/español|\/spanish$/.test(lowerMsg)) return { command: true, language: 'es' };
+  if (/^\/inglés|\/english$/.test(lowerMsg)) return { command: true, language: 'en' };
+  if (/^\/francés|\/french$/.test(lowerMsg)) return { command: true, language: 'fr' };
+  if (/^\/italiano|\/italian$/.test(lowerMsg)) return { command: true, language: 'it' };
+  
+  // Si no es un comando
+  return { command: false, language: currentLanguage };
+}
+
+// Conexión WebSocket
+io.on('connection', (socket) => {
+  console.log('Nuevo usuario conectado');
+  
+  let userLanguage = 'es'; // Idioma predeterminado
+  
+  // Enviar saludo inicial
+  socket.emit('bot-message', { 
+    text: greetings[userLanguage],
+    language: userLanguage
+  });
+  
+  // Manejar mensajes entrantes
+  socket.on('user-message', async (data) => {
+    try {
+      const userMessage = data.text;
+      
+      // Verificar si es un comando
+      const commandResult = handleCommands(userMessage, userLanguage);
+      
+      if (commandResult.command) {
+        userLanguage = commandResult.language;
+        socket.emit('bot-message', {
+          text: languageChangedResponses[userLanguage],
+          language: userLanguage
+        });
+        return;
+      }
+      
+      // Auto-detectar idioma si está habilitado
+      if (data.autoDetect) {
+        userLanguage = detectLanguage(userMessage);
+      }
+      
+      // Preparar el mensaje para enviar a la API de OpenAI
+      const response = await openai.chat.completions.create({
+        model: "gpt-4", // O el modelo que prefieras usar
+        messages: [
+          { role: "system", content: getSystemPrompt(userLanguage) },
+          { role: "user", content: userMessage }
+        ],
+        max_tokens: 500
+      });
+      
+      // Enviar respuesta al usuario
+      socket.emit('bot-message', {
+        text: response.choices[0].message.content,
+        language: userLanguage
+      });
+      
+    } catch (error) {
+      console.error('Error al procesar el mensaje:', error);
+      
+      // Mensaje de error en el idioma actual
+      const errorMessages = {
+        es: "Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo.",
+        en: "I'm sorry, there was an error processing your message. Please try again.",
+        fr: "Je suis désolé, une erreur s'est produite lors du traitement de votre message. Veuillez réessayer.",
+        it: "Mi dispiace, si è verificato un errore durante l'elaborazione del tuo messaggio. Per favore riprova."
+      };
+      
+      socket.emit('bot-message', {
+        text: errorMessages[userLanguage] || errorMessages.en,
+        language: userLanguage
+      });
+    }
+  });
+  
+  // Manejar desconexión
+  socket.on('disconnect', () => {
+    console.log('Usuario desconectado');
+  });
+});
+
+// HTML simple para el frontend
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Iniciar servidor
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Servidor ejecutándose en el puerto ${PORT}`);
+});
